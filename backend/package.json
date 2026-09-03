@@ -7,15 +7,19 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev":"bun run src/index.ts"
+    "dev": "bun run src/index.ts",
+    "openrouter": "bun run src/agents/openrouter.ts",
+    "gemini": "bun run src/agents/gemini.ts"
   },
   "peerDependencies": {
     "typescript": "^7"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "groq-sdk": "^1.6.0"
   }
 }
