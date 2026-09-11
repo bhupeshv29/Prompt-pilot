@@ -8,6 +8,10 @@ import {
   killProjectSandbox,
 } from "../e2b/sandbox";
 
+import { CreateMessageSchema } from "../types/messageSchema";
+import { addClient, removeClient, emit } from "../sse/manager";
+import { streamText } from "../Provider/groq";
+
 const router = Router();
 
 router.use(AuthMiddleware);
@@ -52,6 +56,89 @@ router.post("/", async (req, res) => {
     console.log(error);
     await prisma.conversation.delete({ where: { id: conversation.id } });
     return res.status(500).json({ error: "failed to create sandbox" });
+  }
+});
+
+router.get("/:id/stream", async (req, res) => {
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  addClient(conversation.id, res);
+  emit(conversation.id, "agent_status", { status: "connected" });
+
+  req.on("close", () => {
+    removeClient(conversation.id, res);
+  });
+});
+
+router.post("/:id/messages", async (req, res) => {
+  const parsed = CreateMessageSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "invalid message" });
+  }
+
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  const userMessage = await prisma.message.create({
+    data: {
+      conversationId: conversation.id,
+      role: "user",
+      content: parsed.data.content,
+    },
+  });
+
+  emit(conversation.id, "message_start", { messageId: userMessage.id });
+
+  try {
+    const history = await prisma.message.findMany({
+      where: { conversationId: conversation.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const full = await streamText(
+      history.map((m) => ({
+        role: m.role === "assistant" ? "assistant" : "user",
+        content: m.content,
+      })),
+      (text) => {
+        emit(conversation.id, "text_delta", { text });
+      },
+    );
+
+    const assistantMessage = await prisma.message.create({
+      data: {
+        conversationId: conversation.id,
+        role: "assistant",
+        content: full,
+      },
+    });
+
+    emit(conversation.id, "message_complete", {
+      messageId: assistantMessage.id,
+    });
+    emit(conversation.id, "agent_complete", {});
+
+    return res.status(201).json({ userMessage, assistantMessage });
+  } catch (error) {
+    console.log(error);
+    emit(conversation.id, "error", { error: "failed to generate response" });
+    return res.status(500).json({ error: "failed to generate response" });
   }
 });
 
