@@ -1,4 +1,4 @@
-import { Router, type Response } from "express";
+import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/constant";
 import { AuthSchema } from "../types/authSchema";
@@ -8,7 +8,7 @@ import AuthMiddleware from "../middleware/auth.middleware";
 const router = Router();
 
 export function signToken(userId: string) {
-  return jwt.sign(userId, JWT_SECRET!, { expiresIn: "7d" });
+  return jwt.sign({ userId }, JWT_SECRET!, { expiresIn: "7d" });
 }
 
 router.post("/register", async (req, res) => {

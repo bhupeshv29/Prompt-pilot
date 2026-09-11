@@ -23,6 +23,6 @@ app.get("/health", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/api/test", testRouter);
 
-app.listen(3000, () => {
+app.listen(PORT, () => {
   console.log(`server is running on port: ${PORT}`);
 });
