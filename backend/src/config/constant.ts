@@ -6,6 +6,7 @@ export const PORT = Number(process.env.PORT ?? 3000);
 export const DATABASE_URL = process.env.DATABASE_URL;
 
 export const E2B_API_KEY = process.env.E2B_API_KEY;
+export const E2B_TEMPLATE = process.env.E2B_TEMPLATE ?? "promptpilot-react";
 
 export const GROQ_API_KEY = process.env.GROQ_API_KEY;
 export const GROQ_BASE_URL = process.env.GROQ_BASE_URL ?? "https://api.groq.com/openai/v1";
