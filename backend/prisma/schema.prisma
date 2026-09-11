@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MessageRole {
+  user
+  assistant
+  tool
+}
+
+enum AgentRunStatus {
+  running
+  waiting_for_user
+  completed
+  failed
+  cancelled
+}
+
+enum ToolCallStatus {
+  pending
+  running
+  waiting
+  completed
+  failed
+}
+
+enum SandboxStatus {
+  creating
+  ready
+  paused
+  snapshot
+  error
+}
+
+enum QuestionStatus {
+  pending
+  answered
+  cancelled
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+}
+
+model Conversation {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String   @default("New project")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  agentRuns AgentRun[]
+  sandbox   Sandbox?
+
+  @@index([userId])
+}
+
+model Message {
+  id             String      @id @default(uuid())
+  conversationId String
+  role           MessageRole
+  content        String
+  createdAt      DateTime    @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  agentRuns    AgentRun[]
+
+  @@index([conversationId])
+}
+
+model AgentRun {
+  id             String         @id @default(uuid())
+  conversationId String
+  messageId      String
+  status         AgentRunStatus @default(running)
+  startedAt      DateTime       @default(now())
+  completedAt    DateTime?
+  error          String?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  toolCalls    ToolCall[]
+  questions    Question[]
+
+  @@index([conversationId])
+  @@index([messageId])
+}
+
+model ToolCall {
+  id          String         @id @default(uuid())
+  agentRunId  String
+  toolName    String
+  input       Json
+  output      Json?
+  status      ToolCallStatus @default(pending)
+  createdAt   DateTime       @default(now())
+  completedAt DateTime?
+
+  agentRun AgentRun  @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  question Question?
+
+  @@index([agentRunId])
+}
+
+model Sandbox {
+  id             String        @id @default(uuid())
+  conversationId String        @unique
+  e2bSandboxId   String
+  status         SandboxStatus @default(creating)
+  previewUrl     String?
+  snapshotId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Question {
+  id         String         @id @default(uuid())
+  agentRunId String
+  toolCallId String         @unique
+  prompt     String
+  options    Json
+  answer     String?
+  status     QuestionStatus @default(pending)
+  createdAt  DateTime       @default(now())
+  answeredAt DateTime?
+
+  agentRun AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  toolCall ToolCall @relation(fields: [toolCallId], references: [id], onDelete: Cascade)
+
+  @@index([agentRunId])
+}
