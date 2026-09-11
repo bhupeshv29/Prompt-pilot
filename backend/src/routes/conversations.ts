@@ -10,7 +10,8 @@ import {
 
 import { CreateMessageSchema } from "../types/messageSchema";
 import { addClient, removeClient, emit } from "../sse/manager";
-import { streamText } from "../Provider/groq";
+
+import { runAgent } from "../agents/loop";
 
 const router = Router();
 
@@ -89,10 +90,15 @@ router.post("/:id/messages", async (req, res) => {
 
   const conversation = await prisma.conversation.findFirst({
     where: { id: req.params.id, userId: req.userId },
+    include: { sandbox: true },
   });
 
   if (!conversation) {
     return res.status(404).json({ error: "conversation not found" });
+  }
+
+  if (!conversation.sandbox) {
+    return res.status(400).json({ error: "sandbox not ready" });
   }
 
   const userMessage = await prisma.message.create({
@@ -106,39 +112,32 @@ router.post("/:id/messages", async (req, res) => {
   emit(conversation.id, "message_start", { messageId: userMessage.id });
 
   try {
-    const history = await prisma.message.findMany({
-      where: { conversationId: conversation.id },
-      orderBy: { createdAt: "asc" },
-    });
+    let live;
+    try {
+      live = await connectProjectSandbox(conversation.sandbox.e2bSandboxId);
+    } catch {
+      live = await createProjectSandbox();
+    }
 
-    const full = await streamText(
-      history.map((m) => ({
-        role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content,
-      })),
-      (text) => {
-        emit(conversation.id, "text_delta", { text });
-      },
-    );
-
-    const assistantMessage = await prisma.message.create({
+    await prisma.sandbox.update({
+      where: { id: conversation.sandbox.id },
       data: {
-        conversationId: conversation.id,
-        role: "assistant",
-        content: full,
+        e2bSandboxId: live.e2bSandboxId,
+        previewUrl: live.previewUrl,
+        status: "ready",
       },
     });
 
-    emit(conversation.id, "message_complete", {
-      messageId: assistantMessage.id,
+    const assistantMessage = await runAgent({
+      conversationId: conversation.id,
+      userMessageId: userMessage.id,
+      sandbox: live.sandbox,
     });
-    emit(conversation.id, "agent_complete", {});
 
     return res.status(201).json({ userMessage, assistantMessage });
   } catch (error) {
     console.log(error);
-    emit(conversation.id, "error", { error: "failed to generate response" });
-    return res.status(500).json({ error: "failed to generate response" });
+    return res.status(500).json({ error: "failed to run agent" });
   }
 });
 

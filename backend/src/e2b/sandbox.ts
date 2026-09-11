@@ -6,6 +6,7 @@ const TIMEOUT_MS = 60 * 60 * 1000;
 
 function toPreview(sandbox: Sandbox) {
   return {
+    sandbox,
     e2bSandboxId: sandbox.sandboxId,
     previewUrl: `https://${sandbox.getHost(PREVIEW_PORT)}`,
   };
