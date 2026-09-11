@@ -11,7 +11,8 @@
     "tsx": "^4.23.13"
   },
   "scripts": {
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun run --watch src/index.ts",
+    "e2b:build": "bun run src/e2b/build-template.ts"
   },
   "peerDependencies": {
     "typescript": "^7.0.2"
@@ -28,6 +29,7 @@
     "bcrypt": "^6.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "e2b": "^2.49.1",
     "express": "^5.2.1",
     "groq-sdk": "^1.6.0",
     "jsonwebtoken": "^9.0.3",
