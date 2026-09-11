@@ -59,6 +59,20 @@ const tools = [
       required: ["path", "diff"],
     },
   },
+  {
+    type: "function" as const,
+    name: "question",
+    description:
+      "Ask the user to pick one option before continuing. Use for design choices like navbar style.",
+    parameters: {
+      type: "object",
+      properties: {
+        question: { type: "string" },
+        options: { type: "array", items: { type: "string" } },
+      },
+      required: ["question", "options"],
+    },
+  },
 ];
 
 export async function generateText(prompt: string) {

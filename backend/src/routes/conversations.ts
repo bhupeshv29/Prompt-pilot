@@ -128,13 +128,13 @@ router.post("/:id/messages", async (req, res) => {
       },
     });
 
-    const assistantMessage = await runAgent({
+    const result = await runAgent({
       conversationId: conversation.id,
       userMessageId: userMessage.id,
       sandbox: live.sandbox,
     });
 
-    return res.status(201).json({ userMessage, assistantMessage });
+    return res.status(201).json({ userMessage, ...result });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: "failed to run agent" });
