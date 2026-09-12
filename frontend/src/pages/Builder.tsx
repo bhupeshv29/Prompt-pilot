@@ -67,7 +67,20 @@ export default function Builder() {
     setConversations(res.data.conversations);
   }
 
+  async function pauseActive() {
+    if (!active) return;
+    try {
+      await api.post(`/conversations/${active.id}/pause`);
+    } catch {
+      // ignore
+    }
+  }
+
   async function openConversation(id: string) {
+    if (active && active.id !== id) {
+      await pauseActive();
+    }
+
     const res = await api.get(`/conversations/${id}`);
     const conversation = res.data.conversation;
     setActive(conversation);
@@ -128,7 +141,8 @@ export default function Builder() {
       <aside style={{ width: 220, borderRight: "1px solid #ddd", padding: 12 }}>
         <button onClick={createConversation}>New project</button>
         <button
-          onClick={() => {
+          onClick={async () => {
+            await pauseActive();
             clearToken();
             navigate("/login");
           }}

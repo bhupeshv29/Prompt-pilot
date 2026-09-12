@@ -87,6 +87,9 @@ export async function streamTurn(
   input: unknown[],
   onDelta: (text: string) => void,
 ) {
+
+  console.log(input);
+  
   const stream = await groq.responses.create({
     model: GROQ_MODEL!,
     instructions: AGENT_INSTRUCTIONS,

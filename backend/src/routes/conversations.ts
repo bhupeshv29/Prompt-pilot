@@ -6,6 +6,7 @@ import {
   createProjectSandbox,
   connectProjectSandbox,
   killProjectSandbox,
+  pauseProjectSandbox,
 } from "../e2b/sandbox";
 
 import { CreateMessageSchema } from "../types/messageSchema";
@@ -60,6 +61,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post("/:id/pause", async (req, res) => {
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+    include: { sandbox: true },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  if (conversation.sandbox) {
+    await pauseProjectSandbox(conversation.sandbox.e2bSandboxId);
+    await prisma.sandbox.update({
+      where: { id: conversation.sandbox.id },
+      data: { status: "paused" },
+    });
+  }
+
+  return res.json({ ok: true });
+});
+
 router.get("/:id/stream", async (req, res) => {
   const conversation = await prisma.conversation.findFirst({
     where: { id: req.params.id, userId: req.userId },
@@ -101,6 +123,17 @@ router.post("/:id/messages", async (req, res) => {
     return res.status(400).json({ error: "sandbox not ready" });
   }
 
+  const busy = await prisma.agentRun.findFirst({
+    where: {
+      conversationId: conversation.id,
+      status: { in: ["running", "waiting_for_user"] },
+    },
+  });
+
+  if (busy) {
+    return res.status(409).json({ error: "agent already running" });
+  }
+
   const userMessage = await prisma.message.create({
     data: {
       conversationId: conversation.id,
@@ -115,8 +148,9 @@ router.post("/:id/messages", async (req, res) => {
     let live;
     try {
       live = await connectProjectSandbox(conversation.sandbox.e2bSandboxId);
-    } catch {
-      live = await createProjectSandbox();
+    } catch (error) {
+      console.log(error);
+      return res.status(503).json({ error: "sandbox unavailable, retry" });
     }
 
     await prisma.sandbox.update({
@@ -159,8 +193,9 @@ router.get("/:id", async (req, res) => {
     let live;
     try {
       live = await connectProjectSandbox(conversation.sandbox.e2bSandboxId);
-    } catch {
-      live = await createProjectSandbox();
+    } catch (error) {
+      console.log(error);
+      return res.status(503).json({ error: "sandbox unavailable, retry" });
     }
 
     const sandbox = await prisma.sandbox.update({

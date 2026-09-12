@@ -4,7 +4,7 @@ import { emit } from "../sse/manager";
 import { streamTurn } from "../Provider/groq";
 import { executeTool } from "../tools/index";
 import { QuestionSchema } from "../types/toolSchema";
-import { connectProjectSandbox, createProjectSandbox } from "../e2b/sandbox";
+import { connectProjectSandbox } from "../e2b/sandbox";
 
 type PausedRun = {
   conversationId: string;
@@ -116,8 +116,9 @@ export async function answerQuestion(opts: {
     live = await connectProjectSandbox(
       sandboxRow?.e2bSandboxId ?? paused.e2bSandboxId,
     );
-  } catch {
-    live = await createProjectSandbox();
+  } catch(error) {
+    console.log(error);
+    return { error: "sandbox unavailable, retry", status: 503 as const };
   }
 
   paused.input.push({
@@ -146,6 +147,15 @@ async function continueLoop(opts: {
 
   try {
     for (let step = 0; step < 12; step++) {
+      input = input.filter((item) => {
+        return !(
+          item &&
+          typeof item === "object" &&
+          "type" in item &&
+          (item as { type?: string }).type === "reasoning"
+        );
+      });
+
       const turn = await streamTurn(input, (text) => {
         emit(opts.conversationId, "text_delta", { text });
       });
@@ -172,7 +182,12 @@ async function continueLoop(opts: {
         return { status: "completed" as const, assistantMessage };
       }
 
-      input = [...input, ...turn.output];
+      input = [
+        ...input,
+        ...(turn.output as { type?: string }[]).filter(
+          (item) => item.type !== "reasoning",
+        ),
+      ];
 
       for (const call of turn.functionCalls) {
         let args: unknown = {};
