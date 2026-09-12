@@ -14,11 +14,13 @@ export default function AuthMiddleware(
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader?.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
+    const token =
+      (authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null) ??
+      (typeof req.query.token === "string" ? req.query.token : null);
 
-    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Authroization required" });
+    }
 
     const decoded = jwt.verify(token!, JWT_SECRET as string) as Decode;
 

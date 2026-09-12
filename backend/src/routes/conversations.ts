@@ -6,11 +6,13 @@ import {
   createProjectSandbox,
   connectProjectSandbox,
   killProjectSandbox,
+  pauseProjectSandbox,
 } from "../e2b/sandbox";
 
 import { CreateMessageSchema } from "../types/messageSchema";
 import { addClient, removeClient, emit } from "../sse/manager";
-import { streamText } from "../Provider/groq";
+
+import { runAgent } from "../agents/loop";
 
 const router = Router();
 
@@ -59,6 +61,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.post("/:id/pause", async (req, res) => {
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+    include: { sandbox: true },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  if (conversation.sandbox) {
+    await pauseProjectSandbox(conversation.sandbox.e2bSandboxId);
+    await prisma.sandbox.update({
+      where: { id: conversation.sandbox.id },
+      data: { status: "paused" },
+    });
+  }
+
+  return res.json({ ok: true });
+});
+
 router.get("/:id/stream", async (req, res) => {
   const conversation = await prisma.conversation.findFirst({
     where: { id: req.params.id, userId: req.userId },
@@ -89,10 +112,26 @@ router.post("/:id/messages", async (req, res) => {
 
   const conversation = await prisma.conversation.findFirst({
     where: { id: req.params.id, userId: req.userId },
+    include: { sandbox: true },
   });
 
   if (!conversation) {
     return res.status(404).json({ error: "conversation not found" });
+  }
+
+  if (!conversation.sandbox) {
+    return res.status(400).json({ error: "sandbox not ready" });
+  }
+
+  const busy = await prisma.agentRun.findFirst({
+    where: {
+      conversationId: conversation.id,
+      status: { in: ["running", "waiting_for_user"] },
+    },
+  });
+
+  if (busy) {
+    return res.status(409).json({ error: "agent already running" });
   }
 
   const userMessage = await prisma.message.create({
@@ -106,39 +145,33 @@ router.post("/:id/messages", async (req, res) => {
   emit(conversation.id, "message_start", { messageId: userMessage.id });
 
   try {
-    const history = await prisma.message.findMany({
-      where: { conversationId: conversation.id },
-      orderBy: { createdAt: "asc" },
-    });
+    let live;
+    try {
+      live = await connectProjectSandbox(conversation.sandbox.e2bSandboxId);
+    } catch (error) {
+      console.log(error);
+      return res.status(503).json({ error: "sandbox unavailable, retry" });
+    }
 
-    const full = await streamText(
-      history.map((m) => ({
-        role: m.role === "assistant" ? "assistant" : "user",
-        content: m.content,
-      })),
-      (text) => {
-        emit(conversation.id, "text_delta", { text });
-      },
-    );
-
-    const assistantMessage = await prisma.message.create({
+    await prisma.sandbox.update({
+      where: { id: conversation.sandbox.id },
       data: {
-        conversationId: conversation.id,
-        role: "assistant",
-        content: full,
+        e2bSandboxId: live.e2bSandboxId,
+        previewUrl: live.previewUrl,
+        status: "ready",
       },
     });
 
-    emit(conversation.id, "message_complete", {
-      messageId: assistantMessage.id,
+    const result = await runAgent({
+      conversationId: conversation.id,
+      userMessageId: userMessage.id,
+      sandbox: live.sandbox,
     });
-    emit(conversation.id, "agent_complete", {});
 
-    return res.status(201).json({ userMessage, assistantMessage });
+    return res.status(201).json({ userMessage, ...result });
   } catch (error) {
     console.log(error);
-    emit(conversation.id, "error", { error: "failed to generate response" });
-    return res.status(500).json({ error: "failed to generate response" });
+    return res.status(500).json({ error: "failed to run agent" });
   }
 });
 
@@ -160,8 +193,9 @@ router.get("/:id", async (req, res) => {
     let live;
     try {
       live = await connectProjectSandbox(conversation.sandbox.e2bSandboxId);
-    } catch {
-      live = await createProjectSandbox();
+    } catch (error) {
+      console.log(error);
+      return res.status(503).json({ error: "sandbox unavailable, retry" });
     }
 
     const sandbox = await prisma.sandbox.update({

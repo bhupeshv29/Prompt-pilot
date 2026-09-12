@@ -2,10 +2,11 @@ import { Sandbox } from "e2b";
 import { E2B_TEMPLATE } from "../config/constant";
 
 const PREVIEW_PORT = 5173;
-const TIMEOUT_MS = 60 * 60 * 1000;
+const TIMEOUT_MS = 5 * 60 * 1000;
 
 function toPreview(sandbox: Sandbox) {
   return {
+    sandbox,
     e2bSandboxId: sandbox.sandboxId,
     previewUrl: `https://${sandbox.getHost(PREVIEW_PORT)}`,
   };
@@ -29,6 +30,15 @@ export async function killProjectSandbox(e2bSandboxId: string) {
   try {
     const sandbox = await Sandbox.connect(e2bSandboxId);
     await sandbox.kill();
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function pauseProjectSandbox(e2bSandboxId: string) {
+  try {
+    const sandbox = await Sandbox.connect(e2bSandboxId);
+    await sandbox.pause();
   } catch (error) {
     console.log(error);
   }

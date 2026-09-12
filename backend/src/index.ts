@@ -4,6 +4,7 @@ import cors from "cors";
 import testRouter from "./routes/test";
 import authRouter from "./routes/auth";
 import conversationRouter from "./routes/conversations";
+import questionRouter from "./routes/questions";
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/conversations", conversationRouter);
+app.use("/questions", questionRouter);
 
 app.use("/api/test", testRouter);
 
