@@ -27,21 +27,21 @@
 }
 
 :root {
-  --background: oklch(0.985 0.012 95);
-  --foreground: oklch(0.32 0.04 310);
-  --card: oklch(0.995 0.008 95);
-  --card-foreground: oklch(0.32 0.04 310);
-  --muted: oklch(0.96 0.02 350);
-  --muted-foreground: oklch(0.52 0.04 310);
-  --border: oklch(0.9 0.03 350);
-  --primary: oklch(0.68 0.16 350);
-  --primary-foreground: oklch(0.99 0.01 95);
-  --secondary: oklch(0.93 0.04 230);
-  --secondary-foreground: oklch(0.38 0.06 250);
-  --accent: oklch(0.94 0.04 320);
-  --accent-foreground: oklch(0.4 0.08 320);
-  --destructive: oklch(0.63 0.2 25);
-  --ring: oklch(0.72 0.14 350);
+  --background: oklch(0.985 0.015 70);
+  --foreground: oklch(0.3 0.04 45);
+  --card: oklch(0.995 0.008 70);
+  --card-foreground: oklch(0.3 0.04 45);
+  --muted: oklch(0.96 0.03 60);
+  --muted-foreground: oklch(0.5 0.05 45);
+  --border: oklch(0.9 0.04 55);
+  --primary: oklch(0.68 0.16 45);
+  --primary-foreground: oklch(0.99 0.01 70);
+  --secondary: oklch(0.93 0.06 85);
+  --secondary-foreground: oklch(0.38 0.06 70);
+  --accent: oklch(0.94 0.05 25);
+  --accent-foreground: oklch(0.4 0.08 25);
+  --destructive: oklch(0.55 0.22 25);
+  --ring: oklch(0.72 0.14 45);
 }
 
 * {
@@ -59,8 +59,8 @@ body {
   font-family: var(--font-sans);
   color: var(--foreground);
   background:
-    radial-gradient(1200px 500px at 10% -10%, oklch(0.93 0.06 350 / 0.8), transparent 55%),
-    radial-gradient(900px 420px at 100% 0%, oklch(0.93 0.05 230 / 0.7), transparent 50%),
+    radial-gradient(1200px 500px at 10% -10%, oklch(0.93 0.07 45 / 0.8), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, oklch(0.94 0.06 85 / 0.7), transparent 50%),
     var(--background);
   letter-spacing: 0.01em;
 }
@@ -112,6 +112,6 @@ body {
   width: 14px;
   height: 18px;
   border-radius: 70% 10% 70% 10%;
-  background: oklch(0.82 0.12 350 / 0.7);
+  background: oklch(0.8 0.13 42 / 0.7);
   animation: petal-fall 11s linear infinite;
 }

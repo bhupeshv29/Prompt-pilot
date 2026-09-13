@@ -171,11 +171,14 @@ export default function Project() {
       const updated = list.data.conversations.find(
         (c: Conversation) => c.id === id,
       );
-      if (updated) setActive((prev) => (prev ? { ...prev, title: updated.title } : prev));
+      if (updated)
+        setActive((prev) => (prev ? { ...prev, title: updated.title } : prev));
     } catch (error) {
       if (isSandboxDown(error)) {
         setSandboxError("sandbox unavailable, retry");
-        setSendError("Preview sandbox is asleep. Retry to wake it, then send again.");
+        setSendError(
+          "Preview sandbox is asleep. Retry to wake it, then send again.",
+        );
         setAgentBusy(false);
       } else if (axios.isAxiosError(error) && error.response?.status === 409) {
         setSendError("Agent is already working on this project.");
@@ -208,7 +211,8 @@ export default function Project() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, liveText, tools, question]);
 
-  const thinking = sending || agentBusy || liveText.length > 0 || tools.length > 0;
+  const thinking =
+    sending || agentBusy || liveText.length > 0 || tools.length > 0;
 
   return (
     <div className="flex h-svh flex-col">
@@ -273,7 +277,9 @@ export default function Project() {
                   </p>
                 )}
                 {m.content && (
-                  <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">
+                    {m.content}
+                  </p>
                 )}
                 {m.tools && <ToolStatus tools={m.tools} />}
               </div>
@@ -301,7 +307,12 @@ export default function Project() {
                 <p className="font-display text-sm">{question.question}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {question.options.map((o) => (
-                    <Button key={o} size="sm" variant="soft" onClick={() => answer(o)}>
+                    <Button
+                      key={o}
+                      size="sm"
+                      variant="soft"
+                      onClick={() => answer(o)}
+                    >
                       {o}
                     </Button>
                   ))}
@@ -337,7 +348,10 @@ export default function Project() {
               placeholder="Ask to edit the site…"
             />
             <div className="mt-2 flex justify-end">
-              <Button type="submit" disabled={!input.trim() || sending || Boolean(question)}>
+              <Button
+                type="submit"
+                disabled={!input.trim() || sending || Boolean(question)}
+              >
                 <Send />
                 Send
               </Button>
