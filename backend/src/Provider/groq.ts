@@ -75,22 +75,10 @@ const tools = [
   },
 ];
 
-//TODO no use  of this fn, will remove later
-export async function generateText(prompt: string) {
-  const response = await groq.responses.create({
-    model: GROQ_MODEL,
-    input: prompt,
-  });
-  return response.output_text;
-}
-
 export async function streamTurn(
   input: unknown[],
   onDelta: (text: string) => void,
 ) {
-
-  console.log(input);
-  
   const stream = await groq.responses.create({
     model: GROQ_MODEL!,
     instructions: AGENT_INSTRUCTIONS,

@@ -111,6 +111,7 @@ export default function Builder() {
 
     try {
       await api.post(`/conversations/${active.id}/messages`, { content });
+      await loadList();
     } catch {
       setTools((prev) => [...prev, "send failed"]);
     } finally {
