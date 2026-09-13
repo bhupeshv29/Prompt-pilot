@@ -1,44 +1,91 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, setToken } from "../api/client";
+import { Sparkles } from "lucide-react";
+import { api, setToken } from "@/api/client";
+import { AuthShell } from "@/components/AuthShell";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 export default function Register() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
+    setBusy(true);
     try {
       const res = await api.post("/auth/register", { email, password });
       setToken(res.data.token);
-      navigate("/");
+      navigate("/studio");
     } catch {
-      setError("invalid credentials");
+      setError("Couldn’t create that account. Try a different email.");
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <form onSubmit={onSubmit}>
-      <h1>Registration</h1>
-      <input
-        placeholder="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <button type="submit">Registration</button>
-      {error && <p>{error}</p>}
-      <p>
-        <Link to="/login">Login</Link>
-      </p>
-    </form>
+    <AuthShell>
+      <div className="mb-6 text-center">
+        <p className="font-accent text-primary text-sm">promptpilot</p>
+        <h1 className="font-display mt-1 text-4xl font-bold tracking-tight">
+          Open your studio
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          A light little workspace for sites that bloom.
+        </p>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="size-4 text-primary" />
+            Create account
+          </CardTitle>
+          <CardDescription>Takes a moment. No fuss.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSubmit} className="flex flex-col gap-3">
+            <Input
+              placeholder="you@studio.dev"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+            <Input
+              type="password"
+              placeholder="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+            {error && (
+              <p className="rounded-2xl bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {error}
+              </p>
+            )}
+            <Button type="submit" disabled={busy} size="lg">
+              {busy ? "Creating…" : "Start building"}
+            </Button>
+          </form>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            Already have a key?{" "}
+            <Link className="font-semibold text-primary hover:underline" to="/login">
+              Sign in
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
+    </AuthShell>
   );
 }
