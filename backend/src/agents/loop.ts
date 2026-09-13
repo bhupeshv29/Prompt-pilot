@@ -5,6 +5,7 @@ import { streamTurn } from "../Provider/groq";
 import { executeTool } from "../tools/index";
 import { QuestionSchema } from "../types/toolSchema";
 import { createProjectSnapshot, getLiveProjectSandbox } from "../e2b/sandbox";
+import { compactInput } from "./context";
 
 type PausedRun = {
   conversationId: string;
@@ -34,9 +35,11 @@ export async function runAgent(opts: {
     orderBy: { createdAt: "asc" },
   });
 
-  const input: unknown[] = history
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => ({ role: m.role, content: m.content }));
+  const input: unknown[] = compactInput(
+    history
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role, content: m.content })),
+  );
 
   return continueLoop({
     conversationId: opts.conversationId,
@@ -164,14 +167,7 @@ async function continueLoop(opts: {
 
   try {
     for (let step = 0; step < 12; step++) {
-      input = input.filter((item) => {
-        return !(
-          item &&
-          typeof item === "object" &&
-          "type" in item &&
-          (item as { type?: string }).type === "reasoning"
-        );
-      });
+      input = compactInput(input);
 
       const turn = await streamTurn(input, (text) => {
         emit(opts.conversationId, "text_delta", { text });
@@ -206,12 +202,7 @@ async function continueLoop(opts: {
         return { status: "completed" as const, assistantMessage };
       }
 
-      input = [
-        ...input,
-        ...(turn.output as { type?: string }[]).filter(
-          (item) => item.type !== "reasoning",
-        ),
-      ];
+      input = compactInput([...input, ...(turn.output as unknown[])]);
 
       for (const call of turn.functionCalls) {
         let args: unknown = {};
