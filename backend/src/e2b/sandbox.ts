@@ -85,8 +85,22 @@ export async function getLiveProjectSandbox(opts: {
   }
 }
 
-export async function createProjectSnapshot(e2bSandboxId: string) {
+export async function deleteProjectSnapshot(snapshotId: string) {
+  try {
+    await Sandbox.deleteSnapshot(snapshotId);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function createProjectSnapshot(
+  e2bSandboxId: string,
+  previousSnapshotId?: string | null,
+) {
   const snapshot = await Sandbox.createSnapshot(e2bSandboxId);
+  if (previousSnapshotId && previousSnapshotId !== snapshot.snapshotId) {
+    await deleteProjectSnapshot(previousSnapshotId);
+  }
   return snapshot.snapshotId;
 }
 

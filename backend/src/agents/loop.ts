@@ -146,7 +146,13 @@ async function saveRunSnapshot(opts: {
   sandbox: Sandbox;
 }) {
   try {
-    const snapshotId = await createProjectSnapshot(opts.sandbox.sandboxId);
+    const row = await prisma.sandbox.findUnique({
+      where: { conversationId: opts.conversationId },
+    });
+    const snapshotId = await createProjectSnapshot(
+      opts.sandbox.sandboxId,
+      row?.snapshotId,
+    );
     await prisma.sandbox.update({
       where: { conversationId: opts.conversationId },
       data: { snapshotId, e2bSandboxId: opts.sandbox.sandboxId },

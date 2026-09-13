@@ -4,6 +4,7 @@ import AuthMiddleware from "../middleware/auth.middleware";
 import { CreateConversationSchema } from "../types/conversationSchema";
 import {
   createProjectSandbox,
+  deleteProjectSnapshot,
   getLiveProjectSandbox,
   killProjectSandbox,
   pauseProjectSandbox,
@@ -153,6 +154,20 @@ router.post("/:id/messages", async (req, res) => {
     },
   });
 
+  const userCount = await prisma.message.count({
+    where: { conversationId: conversation.id, role: "user" },
+  });
+
+  if (userCount === 1) {
+    const title = parsed.data.content.trim().replace(/\s+/g, " ");
+    await prisma.conversation.update({
+      where: { id: conversation.id },
+      data: {
+        title: title.length > 60 ? `${title.slice(0, 57)}...` : title || "New project",
+      },
+    });
+  }
+
   emit(conversation.id, "message_start", { messageId: userMessage.id });
 
   try {
@@ -245,6 +260,9 @@ router.delete("/:id", async (req, res) => {
 
   if (conversation.sandbox) {
     await killProjectSandbox(conversation.sandbox.e2bSandboxId);
+    if (conversation.sandbox.snapshotId) {
+      await deleteProjectSnapshot(conversation.sandbox.snapshotId);
+    }
   }
 
   await prisma.conversation.delete({
@@ -269,38 +287,6 @@ router.get("/:id/messages", async (req, res) => {
   });
 
   return res.json({ messages });
-});
-
-router.post("/:id/pause", async (req, res) => {
-  const conversation = await prisma.conversation.findFirst({
-    where: { id: req.params.id, userId: req.userId },
-    include: { sandbox: true },
-  });
-
-  if (!conversation) {
-    return res.status(404).json({ error: "conversation not found" });
-  }
-
-  const busy = await prisma.agentRun.findFirst({
-    where: {
-      conversationId: conversation.id,
-      status: { in: ["running", "waiting_for_user"] },
-    },
-  });
-
-  if (busy) {
-    return res.status(409).json({ error: "agent already running" });
-  }
-
-  if (conversation.sandbox) {
-    await pauseProjectSandbox(conversation.sandbox.e2bSandboxId);
-    await prisma.sandbox.update({
-      where: { id: conversation.sandbox.id },
-      data: { status: "paused" },
-    });
-  }
-
-  return res.json({ ok: true });
 });
 
 export default router;
