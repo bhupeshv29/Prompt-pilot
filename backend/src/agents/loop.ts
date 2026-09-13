@@ -4,7 +4,7 @@ import { emit } from "../sse/manager";
 import { streamTurn } from "../Provider/groq";
 import { executeTool } from "../tools/index";
 import { QuestionSchema } from "../types/toolSchema";
-import { connectProjectSandbox } from "../e2b/sandbox";
+import { createProjectSnapshot, getLiveProjectSandbox } from "../e2b/sandbox";
 
 type PausedRun = {
   conversationId: string;
@@ -113,10 +113,11 @@ export async function answerQuestion(opts: {
   const sandboxRow = question.agentRun.conversation.sandbox;
   let live;
   try {
-    live = await connectProjectSandbox(
-      sandboxRow?.e2bSandboxId ?? paused.e2bSandboxId,
-    );
-  } catch(error) {
+    live = await getLiveProjectSandbox({
+      e2bSandboxId: sandboxRow?.e2bSandboxId ?? paused.e2bSandboxId,
+      snapshotId: sandboxRow?.snapshotId,
+    });
+  } catch (error) {
     console.log(error);
     return { error: "sandbox unavailable, retry", status: 503 as const };
   }
@@ -137,6 +138,21 @@ export async function answerQuestion(opts: {
   return { status: 200 as const, result };
 }
 
+async function saveRunSnapshot(opts: {
+  conversationId: string;
+  sandbox: Sandbox;
+}) {
+  try {
+    const snapshotId = await createProjectSnapshot(opts.sandbox.sandboxId);
+    await prisma.sandbox.update({
+      where: { conversationId: opts.conversationId },
+      data: { snapshotId, e2bSandboxId: opts.sandbox.sandboxId },
+    });
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 async function continueLoop(opts: {
   conversationId: string;
   runId: string;
@@ -144,6 +160,7 @@ async function continueLoop(opts: {
   input: unknown[];
 }) {
   let input = opts.input;
+  let filesChanged = false;
 
   try {
     for (let step = 0; step < 12; step++) {
@@ -173,6 +190,13 @@ async function continueLoop(opts: {
           where: { id: opts.runId },
           data: { status: "completed", completedAt: new Date() },
         });
+
+        if (filesChanged) {
+          await saveRunSnapshot({
+            conversationId: opts.conversationId,
+            sandbox: opts.sandbox,
+          });
+        }
 
         emit(opts.conversationId, "message_complete", {
           messageId: assistantMessage.id,
@@ -246,6 +270,13 @@ async function continueLoop(opts: {
             status: "waiting_for_user",
           });
 
+          if (filesChanged) {
+            await saveRunSnapshot({
+              conversationId: opts.conversationId,
+              sandbox: opts.sandbox,
+            });
+          }
+
           return { status: "waiting_for_user" as const, question };
         }
 
@@ -278,6 +309,7 @@ async function continueLoop(opts: {
           (call.name === "write" || call.name === "diff_apply") &&
           result.ok
         ) {
+          filesChanged = true;
           emit(opts.conversationId, "preview_updated", {});
         }
 
@@ -291,6 +323,12 @@ async function continueLoop(opts: {
 
     throw new Error("too many tool steps");
   } catch (error) {
+    if (filesChanged) {
+      await saveRunSnapshot({
+        conversationId: opts.conversationId,
+        sandbox: opts.sandbox,
+      });
+    }
     await prisma.agentRun.update({
       where: { id: opts.runId },
       data: {
