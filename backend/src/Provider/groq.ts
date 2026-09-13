@@ -75,6 +75,7 @@ const tools = [
   },
 ];
 
+//TODO no use  of this fn, will remove later
 export async function generateText(prompt: string) {
   const response = await groq.responses.create({
     model: GROQ_MODEL,
