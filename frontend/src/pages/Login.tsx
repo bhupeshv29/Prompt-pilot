@@ -38,7 +38,6 @@ export default function Login() {
   return (
     <AuthLayout>
       <div className="mb-6 text-center">
-        <p className="font-accent text-primary text-sm">promptpilot</p>
         <h1 className="font-display mt-1 text-4xl font-bold tracking-tight">
           Welcome back
         </h1>
@@ -47,7 +46,13 @@ export default function Login() {
         </p>
       </div>
       <Card>
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          <Link to="/" className="flex items-center gap-2">
+            <span className="grid size-8 place-items-center rounded-full bg-primary text-primary-foreground">
+              <Sparkles className="size-4" />
+            </span>
+            <span className="font-accent text-lg text-primary">promptpilot</span>
+          </Link>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="size-4 text-primary" />
             Sign in
