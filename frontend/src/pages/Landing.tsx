@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Eye,
   MessageSquareHeart,
@@ -7,10 +8,20 @@ import {
   Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { getToken } from "@/api/client";
 
 export default function Landing() {
+  const navigate = useNavigate();
   const signedIn = Boolean(getToken());
+  const [prompt, setPrompt] = useState("");
+
+  function submitPrompt() {
+    const text = prompt.trim();
+    if (!text) return;
+    sessionStorage.setItem("pendingPrompt", text);
+    navigate(signedIn ? "/studio" : "/login");
+  }
 
   return (
     <div className="relative overflow-hidden">
@@ -48,75 +59,63 @@ export default function Landing() {
       </header>
 
       <main>
-        <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 lg:grid-cols-2 lg:py-24">
-          <div>
-            <p className="font-accent text-primary">chat a site into bloom</p>
-            <h1 className="font-display mt-2 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
-              Describe it.
-              <span className="block text-primary">Watch it live.</span>
-            </h1>
-            <p className="mt-5 max-w-md text-lg text-muted-foreground">
-              PromptPilot is a soft little studio: talk to an agent, and a real
-              preview grows on the right. No local files. Just your idea, a
-              sandbox, and a site.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link to={signedIn ? "/studio" : "/register"}>
-                  <Wand2 />
-                  {signedIn ? "Back to projects" : "Create your studio"}
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <a href="#how">See how it works</a>
-              </Button>
+        <section className="mx-auto max-w-3xl px-5 py-16 text-center lg:py-24">
+          <p className="font-accent text-primary">chat a site into bloom</p>
+          <h1 className="font-display mt-2 text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+            Describe it.
+            <span className="block text-primary">Watch it live.</span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-md text-lg text-muted-foreground">
+            PromptPilot is a soft little studio: talk to an agent, and a real
+            preview blooms in your studio. No local files. Just your idea, a
+            sandbox, and a site.
+          </p>
+
+          <div className="relative mx-auto mt-8 max-w-2xl text-left">
+            <div className="absolute -right-8 -top-8 size-28 rounded-full bg-accent/80 blur-2xl" />
+            <div className="relative rounded-[2rem] border border-border bg-card/90 p-4 shadow-[0_30px_80px_-32px_rgba(244,114,182,0.55)] sm:p-5">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitPrompt();
+                }}
+              >
+                <Textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      submitPrompt();
+                    }
+                  }}
+                  placeholder="Describe your dream website…"
+                  rows={3}
+                />
+                <div className="mt-2 flex justify-center">
+                  <Button type="submit" disabled={!prompt.trim()}>
+                    <Wand2 />
+                    {signedIn ? "Build it" : "Sign in to build"}
+                  </Button>
+                </div>
+              </form>
             </div>
-            <p className="mt-6 text-sm text-muted-foreground">
-              Light theme. Live iframe. Agent tools you can actually read.
-            </p>
           </div>
 
-          <div className="floaty relative">
-            <div className="absolute -left-6 -top-6 size-24 rounded-full bg-accent/80 blur-2xl" />
-            <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_30px_80px_-32px_rgba(244,114,182,0.55)]">
-              <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-4 py-2">
-                <span className="size-2.5 rounded-full bg-rose-300" />
-                <span className="size-2.5 rounded-full bg-amber-300" />
-                <span className="size-2.5 rounded-full bg-emerald-300" />
-                <span className="font-accent ml-2 text-xs text-muted-foreground">
-                  sakura café
-                </span>
-              </div>
-              <div className="grid min-h-[320px] sm:grid-cols-[0.9fr_1.2fr]">
-                <div className="space-y-3 border-r border-border bg-card p-4">
-                  <div className="ml-6 rounded-2xl rounded-br-md bg-primary px-3 py-2 text-xs text-primary-foreground">
-                    Make a pastel café landing page
-                  </div>
-                  <div className="rounded-2xl rounded-bl-md border border-border bg-muted/40 px-3 py-2 text-xs">
-                    <p className="font-accent text-[10px] text-primary">thinking</p>
-                    Sketching a warm storefront…
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                        Write App.jsx ✓
-                      </span>
-                      <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] font-semibold text-sky-700">
-                        Read index.css ✓
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-[linear-gradient(180deg,oklch(0.95_0.03_350),oklch(0.99_0.01_95))] p-5">
-                  <p className="font-accent text-primary text-xs">open · 8–4</p>
-                  <h2 className="font-display text-2xl font-bold">Hana Café</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Matcha, soft bread, rainy-day windows.
-                  </p>
-                  <div className="mt-4 h-24 rounded-2xl bg-white/70 shadow-inner" />
-                  <div className="mt-3 h-8 w-28 rounded-full bg-primary/80" />
-                </div>
-              </div>
-            </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Button asChild size="lg">
+              <Link to={signedIn ? "/studio" : "/register"}>
+                <Wand2 />
+                {signedIn ? "Back to projects" : "Create your studio"}
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline">
+              <a href="#how">See how it works</a>
+            </Button>
           </div>
+          <p className="mt-6 text-sm text-muted-foreground">
+            Light theme. Live iframe. Agent tools you can actually read.
+          </p>
         </section>
 
         <section className="mx-auto max-w-6xl px-5 pb-16">
