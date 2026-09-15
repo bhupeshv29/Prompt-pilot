@@ -115,3 +115,28 @@ body {
   background: oklch(0.8 0.13 42 / 0.7);
   animation: petal-fall 11s linear infinite;
 }
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 38s linear infinite;
+}
+
+.marquee:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .floaty,
+  .petal {
+    animation: none;
+  }
+}

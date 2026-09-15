@@ -11,6 +11,81 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { getToken } from "@/api/client";
 
+type Sample = {
+  name: string;
+  tag: string;
+  img: string;
+  alt: string;
+};
+
+const samples: Sample[] = [
+  {
+    name: "Hana Café",
+    tag: "café landing",
+    img: "/samples/cafe.jpg",
+    alt: "Cozy café website hero",
+  },
+  {
+    name: "Mono Folio",
+    tag: "photo portfolio",
+    img: "/samples/portfolio.jpg",
+    alt: "Photographer portfolio website",
+  },
+  {
+    name: "Fern & Co",
+    tag: "plant shop",
+    img: "/samples/plants.jpg",
+    alt: "Plant shop website",
+  },
+  {
+    name: "Tidepool",
+    tag: "travel journal",
+    img: "/samples/travel.jpg",
+    alt: "Travel journal website",
+  },
+  {
+    name: "Atelier North",
+    tag: "design agency",
+    img: "/samples/agency.jpg",
+    alt: "Design agency website",
+  },
+  {
+    name: "Kiln & Crumb",
+    tag: "bakery site",
+    img: "/samples/bakery.jpg",
+    alt: "Bakery website",
+  },
+];
+
+function SampleCard({ sample }: { sample: Sample }) {
+  return (
+    <figure className="mr-5 w-64 shrink-0 overflow-hidden rounded-3xl border border-border bg-card text-left shadow-[0_18px_50px_-28px_rgba(244,114,182,0.45)]">
+      <div className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-2">
+        <span className="size-2 rounded-full bg-rose-300" />
+        <span className="size-2 rounded-full bg-amber-300" />
+        <span className="size-2 rounded-full bg-emerald-300" />
+        <span className="font-accent ml-1 truncate text-[10px] text-muted-foreground">
+          {sample.name}
+        </span>
+      </div>
+      <img
+        src={sample.img}
+        alt={sample.alt}
+        loading="lazy"
+        className="h-36 w-full bg-muted object-cover"
+      />
+      <figcaption className="flex items-baseline justify-between gap-2 px-3 py-2">
+        <span className="font-display truncate text-sm font-semibold">
+          {sample.name}
+        </span>
+        <span className="shrink-0 text-[11px] text-muted-foreground">
+          {sample.tag}
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
+
 export default function Landing() {
   const navigate = useNavigate();
   const signedIn = Boolean(getToken());
@@ -118,7 +193,32 @@ export default function Landing() {
           </p>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 pb-16">
+        <section id="samples" className="scroll-mt-24 overflow-hidden py-16">
+          <div className="mx-auto max-w-6xl px-5 text-center">
+            <p className="font-accent text-primary">fresh from the studio</p>
+            <h2 className="font-display mt-1 text-3xl font-bold">
+              Sites people grew
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              A few flavors of what a single prompt can bloom into.
+            </p>
+          </div>
+          <div className="marquee mt-8 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+            <div className="animate-marquee flex w-max">
+              {[...samples, ...samples].map((s, i) => (
+                <SampleCard key={`${s.name}-${i}`} sample={s} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="features" className="mx-auto max-w-6xl scroll-mt-24 px-5 pb-16">
+          <div className="mb-8 text-center">
+            <p className="font-accent text-primary">soft by design</p>
+            <h2 className="font-display mt-1 text-3xl font-bold">
+              Made for easy growing
+            </h2>
+          </div>
           <div className="grid gap-4 md:grid-cols-3">
             {[
               {
@@ -139,9 +239,11 @@ export default function Landing() {
             ].map((item) => (
               <article
                 key={item.title}
-                className="rounded-3xl border border-border bg-card/80 p-6 shadow-[0_18px_50px_-28px_rgba(244,114,182,0.45)]"
+                className="rounded-3xl border border-border bg-card/80 p-6 shadow-[0_18px_50px_-28px_rgba(244,114,182,0.45)] transition hover:-translate-y-1"
               >
-                <item.icon className="mb-3 size-5 text-primary" />
+                <span className="mb-3 grid size-10 place-items-center rounded-2xl bg-primary/10">
+                  <item.icon className="size-5 text-primary" />
+                </span>
                 <h3 className="font-display text-lg font-semibold">{item.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {item.body}
@@ -151,7 +253,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="how" className="border-y border-border bg-card/50 py-16">
+        <section id="how" className="scroll-mt-24 border-y border-border bg-card/50 py-16">
           <div className="mx-auto max-w-6xl px-5">
             <p className="font-accent text-primary">three soft steps</p>
             <h2 className="font-display mt-1 text-3xl font-bold">How a project grows</h2>
@@ -173,7 +275,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-4xl px-5 py-20 text-center">
+        <section id="start" className="mx-auto max-w-4xl scroll-mt-24 px-5 py-20 text-center">
           <h2 className="font-display text-4xl font-bold tracking-tight">
             Ready when the idea is.
           </h2>
@@ -189,11 +291,81 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="border-t border-border px-5 py-8 text-center">
-        <p className="font-accent text-sm text-primary">promptpilot</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          A light studio for sites that bloom.
-        </p>
+      <footer className="border-t border-border bg-card/60">
+        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div>
+            <Link to="/" className="flex items-center gap-2">
+              <span className="grid size-8 place-items-center rounded-full bg-primary text-primary-foreground">
+                <Sparkles className="size-4" />
+              </span>
+              <span className="font-accent text-lg text-primary">promptpilot</span>
+            </Link>
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+              A light studio for sites that bloom. Chat with an agent, watch
+              a real preview grow.
+            </p>
+            <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <span className="size-2 rounded-full bg-emerald-500" />
+              All systems blooming
+            </p>
+          </div>
+          <nav>
+            <p className="font-accent text-sm text-primary">studio</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <Link className="text-muted-foreground hover:text-foreground hover:underline" to="/studio">
+                  Open studio
+                </Link>
+              </li>
+              <li>
+                <a className="text-muted-foreground hover:text-foreground hover:underline" href="#samples">
+                  Sample sites
+                </a>
+              </li>
+              <li>
+                <a className="text-muted-foreground hover:text-foreground hover:underline" href="#how">
+                  How it works
+                </a>
+              </li>
+            </ul>
+          </nav>
+          <nav>
+            <p className="font-accent text-sm text-primary">account</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <Link className="text-muted-foreground hover:text-foreground hover:underline" to="/login">
+                  Sign in
+                </Link>
+              </li>
+              <li>
+                <Link className="text-muted-foreground hover:text-foreground hover:underline" to="/register">
+                  Start building
+                </Link>
+              </li>
+            </ul>
+          </nav>
+          <nav>
+            <p className="font-accent text-sm text-primary">explore</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <a className="text-muted-foreground hover:text-foreground hover:underline" href="#features">
+                  Features
+                </a>
+              </li>
+              <li>
+                <a className="text-muted-foreground hover:text-foreground hover:underline" href="#start">
+                  Get started
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+        <div className="border-t border-border/70">
+          <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-5 py-5 text-xs text-muted-foreground sm:flex-row">
+            <p>© {new Date().getFullYear()} promptpilot</p>
+            <p className="font-accent text-sm text-primary">grown, not built.</p>
+          </div>
+        </div>
       </footer>
     </div>
   );
