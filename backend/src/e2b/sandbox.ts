@@ -16,6 +16,19 @@ function toPreview(sandbox: Sandbox) {
   };
 }
 
+
+/**
+ * 
+ * 
+ * - sandbox.commands.run(cmd,{timeoutMs:8000}) executes remotely in sandbox, not locally. Returns {exitCode}.
+- Cmd: node -e "fetch('http://127.0.0.1:5173')...":
+- node -e runs inline JS without a file.
+- fetch(127.0.0.1:5173) — loopback to Vite default port PREVIEW_PORT. fetch rejects only on network-refused, not on HTTP 404/500, so any response = server up.
+- .then(exit 0) / .catch(exit 1) maps to Unix convention: 0=success.
+- return exitCode===0 -> true=up.
+Used by ensureVite():27-48: if down, npm run dev & in background, then poll 20 x 500ms until viteIsUp().
+ */
+
 async function viteIsUp(sandbox: Sandbox) {
   const result = await sandbox.commands.run(
     `node -e "fetch('http://127.0.0.1:5173').then(()=>process.exit(0)).catch(()=>process.exit(1))"`,

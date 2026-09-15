@@ -36,13 +36,16 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
+
   const parsed = AuthSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "invalid email or password" });
   }
+
   const user = await prisma.user.findUnique({
     where: { email: parsed.data.email },
   });
+
   if (!user) {
     return res.status(401).json({ error: "invalid credentials" });
   }
@@ -64,13 +67,17 @@ router.post("/logout", (_req, res) => {
 });
 
 router.get("/me", AuthMiddleware, async (req, res) => {
+  
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
     select: { id: true, email: true },
   });
+
   if (!user) {
     return res.status(401).json({ error: "unauthorized" });
   }
+
   return res.json({ user });
 });
+
 export default router;

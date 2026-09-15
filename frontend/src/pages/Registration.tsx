@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { api, setToken } from "@/api/client";
-import { AuthShell } from "@/components/AuthShell";
+import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,12 +18,12 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    setBusy(true);
+    setLoading(true);
     try {
       const res = await api.post("/auth/register", { email, password });
       setToken(res.data.token);
@@ -31,12 +31,12 @@ export default function Register() {
     } catch {
       setError("Couldn’t create that account. Try a different email.");
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
   }
 
   return (
-    <AuthShell>
+    <AuthLayout>
       <div className="mb-6 text-center">
         <p className="font-accent text-primary text-sm">promptpilot</p>
         <h1 className="font-display mt-1 text-4xl font-bold tracking-tight">
@@ -74,18 +74,21 @@ export default function Register() {
                 {error}
               </p>
             )}
-            <Button type="submit" disabled={busy} size="lg">
-              {busy ? "Creating…" : "Start building"}
+            <Button type="submit" disabled={loading} size="lg">
+              {loading ? "Creating…" : "Start building"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             Already have a key?{" "}
-            <Link className="font-semibold text-primary hover:underline" to="/login">
+            <Link
+              className="font-semibold text-primary hover:underline"
+              to="/login"
+            >
               Sign in
             </Link>
           </p>
         </CardContent>
       </Card>
-    </AuthShell>
+    </AuthLayout>
   );
 }

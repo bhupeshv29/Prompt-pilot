@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export function AuthShell({ children }: { children: ReactNode }) {
+export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex min-h-svh items-center justify-center overflow-hidden px-6 py-10">
       <div className="sakura-orb floaty left-[-4rem] top-10 size-52 bg-primary/30" />

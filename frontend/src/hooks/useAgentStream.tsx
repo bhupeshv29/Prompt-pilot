@@ -29,7 +29,7 @@ export function useAgentStream(
     if (!token) return;
 
     const es = new EventSource(
-      `http://localhost:3000/conversations/${conversationId}/stream?token=${token}`,
+      `${import.meta.env.VITE_API_BASE_URL}/conversations/${conversationId}/stream?token=${token}`,
     );
 
     const listen = (event: string, fn: (data: unknown) => void) => {

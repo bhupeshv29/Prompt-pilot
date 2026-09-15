@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { api, setToken } from "@/api/client";
-import { AuthShell } from "@/components/AuthShell";
+import { AuthLayout } from "@/components/AuthLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,12 +18,12 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    setBusy(true);
+    setLoading(true);
     try {
       const res = await api.post("/auth/login", { email, password });
       setToken(res.data.token);
@@ -31,12 +31,12 @@ export default function Login() {
     } catch {
       setError("Those credentials didn’t match. Try again?");
     } finally {
-      setBusy(false);
+      setLoading(false);
     }
   }
 
   return (
-    <AuthShell>
+    <AuthLayout>
       <div className="mb-6 text-center">
         <p className="font-accent text-primary text-sm">promptpilot</p>
         <h1 className="font-display mt-1 text-4xl font-bold tracking-tight">
@@ -74,18 +74,21 @@ export default function Login() {
                 {error}
               </p>
             )}
-            <Button type="submit" disabled={busy} size="lg">
-              {busy ? "Entering…" : "Enter studio"}
+            <Button type="submit" disabled={loading} size="lg">
+              {loading ? "Entering…" : "Enter studio"}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             New here?{" "}
-            <Link className="font-semibold text-primary hover:underline" to="/register">
+            <Link
+              className="font-semibold text-primary hover:underline"
+              to="/register"
+            >
               Create an account
             </Link>
           </p>
         </CardContent>
       </Card>
-    </AuthShell>
+    </AuthLayout>
   );
 }

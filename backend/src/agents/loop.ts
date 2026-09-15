@@ -176,7 +176,7 @@ async function continueLoop(opts: {
       input = compactInput(input);
 
       const turn = await streamTurn(input, (text) => {
-        emit(opts.conversationId, "text_delta", { text });
+      emit(opts.conversationId, "text_delta", { text });
       });
 
       if (turn.functionCalls.length === 0) {

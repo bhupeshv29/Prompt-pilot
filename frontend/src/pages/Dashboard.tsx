@@ -10,7 +10,10 @@ type Conversation = {
   title: string;
   updatedAt?: string;
   createdAt?: string;
-  sandbox?: { previewUrl?: string | null; status?: string | null } | null;
+  sandbox?: {
+    previewUrl?: string | null;
+    status?: string | null;
+  } | null;
 };
 
 function when(iso?: string) {
