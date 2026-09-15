@@ -172,11 +172,11 @@ async function continueLoop(opts: {
   let filesChanged = false;
 
   try {
-    for (let step = 0; step < 12; step++) {
+    for (let step = 0; step < 15; step++) {
       input = compactInput(input);
 
       const turn = await streamTurn(input, (text) => {
-        emit(opts.conversationId, "text_delta", { text });
+      emit(opts.conversationId, "text_delta", { text });
       });
 
       if (turn.functionCalls.length === 0) {

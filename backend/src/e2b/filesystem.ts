@@ -3,6 +3,15 @@ import type { Sandbox } from "e2b";
 
 const ROOT = "/home/user/project";
 
+/**
+ * path.posix — forces Linux /-style paths, not OS-dependent path.normalize (which is \ on Windows).
+ *  Needed because E2B sandbox is Linux even if backend runs on Mac/Windows.
+
+normalize(p) — pure string cleanup, no disk access: collapses //, resolves ./..:
+"/a//b/../c" -> "/a/c", "src/../index.ts" -> "index.ts".
+join(ROOT, raw) — ROOT + "/" + raw then normalized, so relative LLM input becomes absolute before the startsWith(ROOT+"/") jail check.
+ */
+
 export function resolveProjectPath(input: string) {
   const raw = input.trim().replaceAll("\\", "/");
   const resolved = raw.startsWith("/")
