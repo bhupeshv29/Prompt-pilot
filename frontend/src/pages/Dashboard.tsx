@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FolderPlus, LogOut, Sparkles, Trash2 } from "lucide-react";
 import { api, clearToken } from "@/api/client";
@@ -30,6 +30,7 @@ export default function Dashboard() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const consumedPendingRef = useRef(false);
 
   async function loadList() {
     const res = await api.get("/conversations");
@@ -37,12 +38,34 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    loadList()
-      .catch(() => {
+    if (consumedPendingRef.current) return;
+    consumedPendingRef.current = true;
+    const pending = sessionStorage.getItem("pendingPrompt");
+    (async () => {
+      try {
+        await loadList();
+      } catch {
         clearToken();
         navigate("/login");
-      })
-      .finally(() => setLoading(false));
+        return;
+      } finally {
+        setLoading(false);
+      }
+      if (!pending) return;
+      sessionStorage.removeItem("pendingPrompt");
+      try {
+        const flat = pending.trim().replace(/\s+/g, " ");
+        const res = await api.post("/conversations", {
+          title:
+            flat.length > 60 ? `${flat.slice(0, 57)}...` : flat || "New project",
+        });
+        navigate(`/projects/${res.data.conversation.id}`, {
+          state: { initialPrompt: pending.trim() },
+        });
+      } catch {
+        // stay on studio; the user can start a project manually
+      }
+    })();
   }, [navigate]);
 
   async function createConversation() {

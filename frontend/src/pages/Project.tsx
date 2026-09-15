@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { ArrowLeft, Code2, Download, ExternalLink, Eye, Loader2, RefreshCw, Send } from "lucide-react";
 import { api, clearToken } from "@/api/client";
@@ -36,6 +36,11 @@ function isSandboxDown(error: unknown) {
 export default function Project() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const initialPromptRef = useRef<string | null>(
+    (location.state as { initialPrompt?: string } | null)?.initialPrompt ??
+      null,
+  );
   const [active, setActive] = useState<Conversation | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
@@ -132,6 +137,11 @@ export default function Project() {
       setQuestion(null);
       const history = await api.get(`/conversations/${id}/messages`);
       setMessages(history.data.messages);
+      if (history.data.messages.length === 0 && initialPromptRef.current) {
+        const first = initialPromptRef.current;
+        initialPromptRef.current = null;
+        await send(first);
+      }
     } catch (error) {
       if (isSandboxDown(error)) {
         setSandboxError("sandbox unavailable, retry");
@@ -154,9 +164,10 @@ export default function Project() {
     }
   }
 
-  async function send() {
-    if (!id || !input.trim() || sending) return;
-    const content = input.trim();
+  async function send(contentOverride?: string) {
+    const raw = contentOverride ?? input;
+    if (!id || !raw.trim() || sending) return;
+    const content = raw.trim();
     setInput("");
     setSending(true);
     setAgentBusy(true);
@@ -238,6 +249,7 @@ export default function Project() {
   }
 
   useEffect(() => {
+    if (initialPromptRef.current) window.history.replaceState({}, "");
     openConversation();
     return () => {
       pauseActive();
