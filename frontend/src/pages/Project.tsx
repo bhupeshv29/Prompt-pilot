@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Loader2, RefreshCw, Send } from "lucide-react";
+import { ArrowLeft, Download, Loader2, RefreshCw, Send } from "lucide-react";
 import { api, clearToken } from "@/api/client";
 import { ToolStatus } from "@/components/ToolStatus";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,7 @@ export default function Project() {
   const [loading, setLoading] = useState(true);
   const [sandboxError, setSandboxError] = useState("");
   const [sendError, setSendError] = useState("");
+  const [downloading, setDownloading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useAgentStream(id, {
@@ -199,6 +200,41 @@ export default function Project() {
     await api.post(`/questions/${qid}/answer`, { answer: option });
   }
 
+  async function downloadProject() {
+    if (!id || downloading) return;
+    setDownloading(true);
+    setSendError("");
+    try {
+      const res = await api.get(`/conversations/${id}/download`, {
+        responseType: "blob",
+      });
+      const disposition = res.headers?.["content-disposition"] as
+        | string
+        | undefined;
+      const match = disposition?.match(/filename="?([^";]+)"?/);
+      const filename = match?.[1] ?? `${active?.title ?? "project"}.tar.gz`;
+      const url = URL.createObjectURL(
+        new Blob([res.data], { type: "application/gzip" }),
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (error) {
+      if (isSandboxDown(error)) {
+        setSandboxError("sandbox unavailable, retry");
+        setSendError("Preview sandbox is asleep. Retry to wake it, then try downloading again.");
+      } else {
+        setSendError("Couldn’t download code files.");
+      }
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   useEffect(() => {
     openConversation();
     return () => {
@@ -236,17 +272,28 @@ export default function Project() {
             </h1>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={async () => {
-            await pauseActive();
-            clearToken();
-            navigate("/login");
-          }}
-        >
-          Logout
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadProject}
+            disabled={downloading || loading}
+          >
+            {downloading ? <Loader2 className="animate-spin" /> : <Download />}
+            {downloading ? "Preparing…" : "Download"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              await pauseActive();
+              clearToken();
+              navigate("/login");
+            }}
+          >
+            Logout
+          </Button>
+        </div>
       </header>
 
       <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(320px,420px)_1fr]">

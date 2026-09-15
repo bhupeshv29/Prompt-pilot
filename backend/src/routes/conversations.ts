@@ -289,4 +289,70 @@ router.get("/:id/messages", async (req, res) => {
   return res.json({ messages });
 });
 
+router.get("/:id/download", async (req, res) => {
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+    include: { sandbox: true },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  if (!conversation.sandbox) {
+    return res.status(400).json({ error: "sandbox not ready" });
+  }
+
+  let live;
+  try {
+    live = await getLiveProjectSandbox({
+      e2bSandboxId: conversation.sandbox.e2bSandboxId,
+      snapshotId: conversation.sandbox.snapshotId,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(503).json({ error: "sandbox unavailable, retry" });
+  }
+
+  const archivePath = `/tmp/project-${conversation.id}.tar.gz`;
+  try {
+    const tar = await live.sandbox.commands.run(
+      `tar -czf "${archivePath}" --exclude=node_modules --exclude=.git --exclude=dist -C /home/user/project .`,
+      { timeoutMs: 60_000 },
+    );
+
+    if (tar.exitCode !== 0) {
+      console.log(tar.stderr);
+      return res.status(500).json({ error: "failed to archive project" });
+    }
+
+    const bytes = await live.sandbox.files.read(archivePath, {
+      format: "bytes",
+    });
+
+    await live.sandbox.commands.run(`rm -f "${archivePath}"`, {
+      timeoutMs: 10_000,
+    });
+
+    const slug =
+      conversation.title
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60) || "project";
+
+    res.setHeader("Content-Type", "application/gzip");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${slug}.tar.gz"`,
+    );
+    res.setHeader("Content-Length", bytes.length);
+    return res.send(Buffer.from(bytes));
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "failed to download project" });
+  }
+});
+
 export default router;
