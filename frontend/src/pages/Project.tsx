@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Download, ExternalLink, Loader2, RefreshCw, Send } from "lucide-react";
+import { ArrowLeft, Code2, Download, ExternalLink, Eye, Loader2, RefreshCw, Send } from "lucide-react";
 import { api, clearToken } from "@/api/client";
+import { CodeBrowser } from "@/components/CodeBrowser";
 import { ToolStatus } from "@/components/ToolStatus";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +50,7 @@ export default function Project() {
   const [sandboxError, setSandboxError] = useState("");
   const [sendError, setSendError] = useState("");
   const [downloading, setDownloading] = useState(false);
+  const [rightView, setRightView] = useState<"preview" | "code">("preview");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useAgentStream(id, {
@@ -417,39 +419,65 @@ export default function Project() {
           </form>
         </section>
 
-        <main className="relative min-h-0 bg-muted/30">
-          {sandboxError ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-              <p className="font-display text-2xl">Preview is napping</p>
-              <p className="max-w-sm text-sm text-muted-foreground">
-                The sandbox couldn’t wake (503). Retry to restore from the last
-                snapshot.
-              </p>
-              <Button onClick={openConversation}>
-                <RefreshCw />
-                Retry sandbox
+        <main className="relative flex min-h-0 flex-col bg-muted/30">
+          <div className="flex items-center justify-end border-b border-border bg-card/60 px-3 py-1.5">
+            <div className="flex items-center gap-1 rounded-full border border-border bg-muted/50 p-1">
+              <Button
+                size="sm"
+                variant={rightView === "preview" ? "soft" : "ghost"}
+                onClick={() => setRightView("preview")}
+              >
+                <Eye />
+                Preview
+              </Button>
+              <Button
+                size="sm"
+                variant={rightView === "code" ? "soft" : "ghost"}
+                onClick={() => setRightView("code")}
+              >
+                <Code2 />
+                Code
               </Button>
             </div>
-          ) : loading ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="size-6 animate-spin text-primary" />
-              <p className="text-sm">Waking preview…</p>
-            </div>
-          ) : previewUrl ? (
-            <iframe
-              key={previewKey}
-              src={previewUrl}
-              title="preview"
-              className="h-full w-full border-0 bg-white"
-            />
-          ) : (
-            <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-              <p className="font-display text-2xl">No preview yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Open this project again once the sandbox is ready.
-              </p>
-            </div>
-          )}
+          </div>
+          <div className="min-h-0 flex-1">
+            {rightView === "code" ? (
+              id ? (
+                <CodeBrowser conversationId={id} refreshSignal={previewKey} />
+              ) : null
+            ) : sandboxError ? (
+              <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+                <p className="font-display text-2xl">Preview is napping</p>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                  The sandbox couldn’t wake (503). Retry to restore from the last
+                  snapshot.
+                </p>
+                <Button onClick={openConversation}>
+                  <RefreshCw />
+                  Retry sandbox
+                </Button>
+              </div>
+            ) : loading ? (
+              <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 className="size-6 animate-spin text-primary" />
+                <p className="text-sm">Waking preview…</p>
+              </div>
+            ) : previewUrl ? (
+              <iframe
+                key={previewKey}
+                src={previewUrl}
+                title="preview"
+                className="h-full w-full border-0 bg-white"
+              />
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+                <p className="font-display text-2xl">No preview yet</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Open this project again once the sandbox is ready.
+                </p>
+              </div>
+            )}
+          </div>
         </main>
       </div>
     </div>
