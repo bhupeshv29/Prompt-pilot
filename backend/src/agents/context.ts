@@ -1,4 +1,11 @@
-import { MAX_CHAT_MESSAGES, MAX_TOOL_OUTPUT_CHARS } from "../config/constant";
+import {
+  MAX_CHAT_MESSAGES,
+  MAX_TOOL_OUTPUT_CHARS,
+  SUMMARY_KEEP_RECENT,
+} from "../config/constant";
+import { summarizeMessages } from "./summarizer";
+
+export type ChatMessage = { role: string; content: string };
 
 function isReasoning(item: unknown) {
   return (
@@ -63,4 +70,44 @@ export function compactInput(input: unknown[]) {
   }
 
   return kept.reverse();
+}
+
+/**
+ * Split chat history into older messages (to summarize) and the most
+ * recent ones (kept verbatim). Pure — safe to unit test.
+ */
+export function splitForSummary(chat: ChatMessage[]) {
+  if (chat.length <= SUMMARY_KEEP_RECENT) {
+    return { older: [] as ChatMessage[], recent: chat };
+  }
+  const cut = chat.length - SUMMARY_KEEP_RECENT;
+  return { older: chat.slice(0, cut), recent: chat.slice(cut) };
+}
+
+/**
+ * Build model input from full chat history: summarize everything older
+ * than the recent window into one recap message instead of dropping it.
+ * On any failure (or empty summary) returns the full history so the
+ * existing compactInput truncation path applies unchanged.
+ */
+export async function buildContextInput(
+  chat: ChatMessage[],
+): Promise<unknown[]> {
+  const { older, recent } = splitForSummary(chat);
+  if (older.length === 0) return [...recent];
+
+  try {
+    const summary = await summarizeMessages(older);
+    if (!summary) return [...chat];
+    return [
+      {
+        role: "assistant",
+        content: `[Summary of earlier conversation]\n${summary}`,
+      },
+      ...recent,
+    ];
+  } catch (error) {
+    console.log("summarization failed, falling back to truncation", error);
+    return [...chat];
+  }
 }

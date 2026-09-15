@@ -5,7 +5,7 @@ import { streamTurn } from "../Provider/groq";
 import { executeTool } from "../tools/index";
 import { QuestionSchema } from "../types/toolSchema";
 import { createProjectSnapshot, getLiveProjectSandbox } from "../e2b/sandbox";
-import { compactInput } from "./context";
+import { buildContextInput, compactInput } from "./context";
 
 type PausedRun = {
   conversationId: string;
@@ -35,11 +35,11 @@ export async function runAgent(opts: {
     orderBy: { createdAt: "asc" },
   });
 
-  const input: unknown[] = compactInput(
-    history
-      .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({ role: m.role, content: m.content })),
-  );
+  const chat = history
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .map((m) => ({ role: m.role, content: m.content }));
+
+  const input: unknown[] = compactInput(await buildContextInput(chat));
 
   return continueLoop({
     conversationId: opts.conversationId,

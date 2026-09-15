@@ -17,3 +17,8 @@ export const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN;
 
 export const MAX_CHAT_MESSAGES = 16;
 export const MAX_TOOL_OUTPUT_CHARS = 4000;
+
+// Summarization (used alongside truncation in context.ts)
+export const SUMMARY_KEEP_RECENT = 8;
+export const SUMMARY_MAX_INPUT_CHARS = 12000;
+export const SUMMARY_MAX_OUTPUT_TOKENS = 800;
