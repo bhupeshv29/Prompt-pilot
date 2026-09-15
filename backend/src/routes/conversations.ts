@@ -12,8 +12,20 @@ import {
 
 import { CreateMessageSchema } from "../types/messageSchema";
 import { addClient, removeClient, emit } from "../sse/manager";
+import { resolveProjectPath } from "../e2b/filesystem";
 
 import { runAgent } from "../agents/loop";
+
+const PROJECT_ROOT = "/home/user/project";
+const HIDDEN_ENTRIES = new Set(["node_modules", ".git", "dist"]);
+
+function toRelative(absPath: string) {
+  if (absPath === PROJECT_ROOT) return "";
+  if (absPath.startsWith(PROJECT_ROOT + "/")) {
+    return absPath.slice(PROJECT_ROOT.length + 1);
+  }
+  return absPath;
+}
 
 const router = Router();
 
@@ -287,6 +299,120 @@ router.get("/:id/messages", async (req, res) => {
   });
 
   return res.json({ messages });
+});
+
+router.get("/:id/files", async (req, res) => {
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+    include: { sandbox: true },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  if (!conversation.sandbox) {
+    return res.status(400).json({ error: "sandbox not ready" });
+  }
+
+  let dir: string;
+  try {
+    dir = resolveProjectPath(
+      typeof req.query.path === "string" ? req.query.path : "",
+    );
+  } catch {
+    return res.status(400).json({ error: "invalid path" });
+  }
+
+  let live;
+  try {
+    live = await getLiveProjectSandbox({
+      e2bSandboxId: conversation.sandbox.e2bSandboxId,
+      snapshotId: conversation.sandbox.snapshotId,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(503).json({ error: "sandbox unavailable, retry" });
+  }
+
+  try {
+    const info = await live.sandbox.files.getInfo(dir);
+    if (info.type !== "dir") {
+      return res.status(400).json({ error: "not a directory" });
+    }
+    const listed = await live.sandbox.files.list(dir);
+    const entries = listed
+      .filter((e) => !HIDDEN_ENTRIES.has(e.name))
+      .map((e) => ({
+        name: e.name,
+        path: toRelative(e.path),
+        type: e.type,
+        size: e.size,
+      }))
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+    return res.json({ path: toRelative(dir), entries });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "failed to list files" });
+  }
+});
+
+router.get("/:id/files/content", async (req, res) => {
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+    include: { sandbox: true },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  if (!conversation.sandbox) {
+    return res.status(400).json({ error: "sandbox not ready" });
+  }
+
+  if (typeof req.query.path !== "string" || !req.query.path.trim()) {
+    return res.status(400).json({ error: "path is required" });
+  }
+
+  let file: string;
+  try {
+    file = resolveProjectPath(req.query.path);
+  } catch {
+    return res.status(400).json({ error: "invalid path" });
+  }
+
+  let live;
+  try {
+    live = await getLiveProjectSandbox({
+      e2bSandboxId: conversation.sandbox.e2bSandboxId,
+      snapshotId: conversation.sandbox.snapshotId,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(503).json({ error: "sandbox unavailable, retry" });
+  }
+
+  try {
+    const info = await live.sandbox.files.getInfo(file);
+    if (info.type !== "file") {
+      return res.status(400).json({ error: "not a file" });
+    }
+    if (info.size > 512_000) {
+      return res.status(413).json({ error: "file too large to preview" });
+    }
+    const content = await live.sandbox.files.read(file);
+    if (content.includes("\0")) {
+      return res.status(415).json({ error: "binary file, download instead" });
+    }
+    return res.json({ path: toRelative(file), content });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "failed to read file" });
+  }
 });
 
 router.get("/:id/download", async (req, res) => {
