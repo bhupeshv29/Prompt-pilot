@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Download, Loader2, RefreshCw, Send } from "lucide-react";
+import { ArrowLeft, Download, ExternalLink, Loader2, RefreshCw, Send } from "lucide-react";
 import { api, clearToken } from "@/api/client";
 import { ToolStatus } from "@/components/ToolStatus";
 import { Button } from "@/components/ui/button";
@@ -273,6 +273,17 @@ export default function Project() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              window.open(previewUrl, "_blank", "noopener,noreferrer")
+            }
+            disabled={!previewUrl || loading}
+          >
+            <ExternalLink />
+            Preview
+          </Button>
           <Button
             variant="outline"
             size="sm"
