@@ -184,11 +184,41 @@ export default function Landing() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline">
+              <a href="#demo">Watch demo</a>
+            </Button>
+            <Button asChild size="lg" variant="ghost">
               <a href="#how">See how it works</a>
             </Button>
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
             Light theme. Live iframe. Agent tools you can actually read.
+          </p>
+        </section>
+
+        <section id="demo" className="mx-auto max-w-5xl scroll-mt-24 px-5 pb-4">
+          <div className="overflow-hidden rounded-[2rem] border border-border bg-card/90 shadow-[0_30px_80px_-32px_rgba(244,114,182,0.55)]">
+            <div className="flex items-center gap-1.5 border-b border-border bg-muted/50 px-4 py-2.5">
+              <span className="size-2.5 rounded-full bg-rose-300" />
+              <span className="size-2.5 rounded-full bg-amber-300" />
+              <span className="size-2.5 rounded-full bg-emerald-300" />
+              <span className="font-accent ml-2 truncate text-xs text-muted-foreground">
+                promptpilot — demo
+              </span>
+            </div>
+            <video
+              src="/PromptPilot.mp4"
+              className="aspect-video w-full bg-muted object-cover"
+              controls
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            >
+              Your browser does not support the video tag.
+            </video>
+          </div>
+          <p className="mt-3 text-center text-sm text-muted-foreground">
+            Watch PromptPilot turn a prompt into a live site — in under a minute.
           </p>
         </section>
 

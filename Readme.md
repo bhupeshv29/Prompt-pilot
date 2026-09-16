@@ -2,6 +2,15 @@
 
 > Turn prompts into live React apps. Type what you want, an AI agent writes and edits code in an isolated cloud sandbox, and you see a live preview instantly — like Lovable, self-hosted.
 
+## Demo
+
+<video src="./frontend/public/PromptPilot.mp4" controls muted loop playsinline width="100%" poster="./frontend/public/samples/cafe.jpg">
+  Your browser does not support the video tag.
+  <a href="./frontend/public/PromptPilot.mp4">Watch the PromptPilot demo (MP4, 25MB)</a>
+</video>
+
+> File: [`frontend/public/PromptPilot.mp4`](./frontend/public/PromptPilot.mp4) — also embedded on the landing page below the hero section (`/` → `#demo`).
+
 ## Architecture
 
 ```mermaid
