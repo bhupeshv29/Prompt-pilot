@@ -101,7 +101,7 @@ export default function Landing() {
   return (
     <div className="relative overflow-hidden">
       <div className="sakura-orb -left-24 -top-16 size-72 bg-primary/25" />
-      <div className="sakura-orb -right-10 top-24 size-80 bg-secondary" />
+      <div className="sakura-orb -right-6 top-32 size-40 bg-secondary" />
       <div className="petal left-[12%] top-28" />
       <div className="petal delay-700 left-[78%] top-40" />
       <div className="petal delay-1000 left-[55%] top-16" />
@@ -147,7 +147,6 @@ export default function Landing() {
           </p>
 
           <div className="relative mx-auto mt-8 max-w-2xl text-left">
-            <div className="absolute -right-8 -top-8 size-28 rounded-full bg-accent/80 blur-2xl" />
             <div className="relative rounded-[2rem] border border-border bg-card/90 p-4 shadow-[0_30px_80px_-32px_rgba(244,114,182,0.55)] sm:p-5">
               <form
                 onSubmit={(e) => {
