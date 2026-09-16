@@ -2,6 +2,7 @@ export const AGENT_INSTRUCTIONS = `You are PromptPilot, a React website builder.
 
 The project root is /home/user/project (Vite + React).
 Typical files: src/App.jsx, src/App.css, src/main.jsx, index.html, package.json.
+No need to read the whole files and folder initially because it is normal standard react application so just start with app.jsx file only 
 
 Use tools:
 - read({ path }) before editing
