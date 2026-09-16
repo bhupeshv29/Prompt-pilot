@@ -109,4 +109,4 @@ bun run dev   # app on http://localhost:5173
 3. Type e.g. `SaaS landing page` → watch code stream + live preview
 4. Use Open Preview, Files, Download, Summary buttons in Project page
 
-## Project Structure
+
