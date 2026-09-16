@@ -4,12 +4,14 @@
 
 ## Demo
 
-<video src="./frontend/public/PromptPilot.mp4" controls muted loop playsinline width="100%" poster="./frontend/public/samples/cafe.jpg">
+https://github.com/bhupeshv29/Prompt-pilot/blob/main/frontend/public/PromptPilot.mp4
+
+<video src="https://raw.githubusercontent.com/bhupeshv29/Prompt-pilot/main/frontend/public/PromptPilot.mp4" controls muted loop playsinline width="100%" poster="https://raw.githubusercontent.com/bhupeshv29/Prompt-pilot/main/frontend/public/samples/cafe.jpg">
   Your browser does not support the video tag.
-  <a href="./frontend/public/PromptPilot.mp4">Watch the PromptPilot demo (MP4, 25MB)</a>
+  <a href="https://github.com/bhupeshv29/Prompt-pilot/blob/main/frontend/public/PromptPilot.mp4">Watch the PromptPilot demo (MP4)</a>
 </video>
 
-> File: [`frontend/public/PromptPilot.mp4`](./frontend/public/PromptPilot.mp4) — also embedded on the landing page below the hero section (`/` → `#demo`).
+> Source file: [`frontend/public/PromptPilot.mp4`](./frontend/public/PromptPilot.mp4) — also embedded on the landing page below the hero section (`/` → `#demo`). If the player above doesn't load, [open the demo video directly](https://github.com/bhupeshv29/Prompt-pilot/blob/main/frontend/public/PromptPilot.mp4).
 
 ## Architecture
 
