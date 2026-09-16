@@ -4,14 +4,12 @@
 
 ## Demo
 
-https://github.com/bhupeshv29/Prompt-pilot/blob/main/frontend/public/PromptPilot.mp4
 
-<video src="https://raw.githubusercontent.com/bhupeshv29/Prompt-pilot/main/frontend/public/PromptPilot.mp4" controls muted loop playsinline width="100%" poster="https://raw.githubusercontent.com/bhupeshv29/Prompt-pilot/main/frontend/public/samples/cafe.jpg">
+
+<video src="https://github.com/user-attachments/assets/25340400-61d8-4b7f-ae9e-32741706c326" controls muted loop playsinline width="100%">
   Your browser does not support the video tag.
-  <a href="https://github.com/bhupeshv29/Prompt-pilot/blob/main/frontend/public/PromptPilot.mp4">Watch the PromptPilot demo (MP4)</a>
+  <a href="https://github.com/bhupeshv29/Prompt-pilot/issues/17">Watch the PromptPilot demo</a>
 </video>
-
-> Source file: [`frontend/public/PromptPilot.mp4`](./frontend/public/PromptPilot.mp4) — also embedded on the landing page below the hero section (`/` → `#demo`). If the player above doesn't load, [open the demo video directly](https://github.com/bhupeshv29/Prompt-pilot/blob/main/frontend/public/PromptPilot.mp4).
 
 ## Architecture
 
@@ -119,5 +117,3 @@ bun run dev   # app on http://localhost:5173
 2. Go to `/studio` → New project
 3. Type e.g. `SaaS landing page` → watch code stream + live preview
 4. Use Open Preview, Files, Download, Summary buttons in Project page
-
-

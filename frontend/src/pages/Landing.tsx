@@ -205,20 +205,25 @@ export default function Landing() {
                 promptpilot — demo
               </span>
             </div>
-            <video
-              src="/PromptPilot.mp4"
-              className="aspect-video w-full bg-muted object-cover"
-              controls
-              muted
-              loop
-              playsInline
-              preload="metadata"
-            >
-              Your browser does not support the video tag.
-            </video>
+            <iframe
+              src="https://drive.google.com/file/d/1yskZ5Ly1vArHk_uIWTDyGbtF8WCjIdAx/preview"
+              className="aspect-video w-full bg-muted"
+              title="PromptPilot demo video"
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+            />
           </div>
           <p className="mt-3 text-center text-sm text-muted-foreground">
-            Watch PromptPilot turn a prompt into a live site — in under a minute.
+            Watch PromptPilot turn a prompt into a live site — in under a minute.{" "}
+            <a
+              href="https://drive.google.com/file/d/1yskZ5Ly1vArHk_uIWTDyGbtF8WCjIdAx/view?usp=sharing"
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Open in Drive
+            </a>
           </p>
         </section>
 
