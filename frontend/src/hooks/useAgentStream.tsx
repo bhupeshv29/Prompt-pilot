@@ -12,6 +12,8 @@ type Handlers = {
   }) => void;
   onPreviewUpdated?: () => void;
   onMessageComplete?: () => void;
+  onAgentStopped?: () => void;
+  onAgentComplete?: () => void;
   onError?: (message: string) => void;
 };
 
@@ -60,6 +62,12 @@ export function useAgentStream(
     });
     listen("message_complete", () => {
       handlersRef.current.onMessageComplete?.();
+    });
+    listen("agent_stopped", () => {
+      handlersRef.current.onAgentStopped?.();
+    });
+    listen("agent_complete", () => {
+      handlersRef.current.onAgentComplete?.();
     });
     listen("error", (d) => {
       const data = d as { error?: string };

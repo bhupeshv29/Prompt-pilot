@@ -18,7 +18,7 @@ app.use(
 app.use(express.json());
 
 app.get("/health", (_req, res) => {
-  res.json({ message: "ok" });
+  res.status(200).json({ status: "ok", message: "ok", uptime: process.uptime() });
 });
 
 app.use("/auth", authRouter);

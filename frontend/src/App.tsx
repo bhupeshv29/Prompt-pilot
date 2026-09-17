@@ -7,6 +7,7 @@ import Register from "./pages/Registration";
 import Dashboard from "./pages/Dashboard";
 import Project from "./pages/Project";
 import { getToken } from "./api/client";
+import BackendGate from "./components/BackendGate";
 
 function Private({ children }: { children: ReactNode }) {
   if (!getToken()) return <Navigate to="/login" replace />;
@@ -15,7 +16,7 @@ function Private({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
-    <>
+    <BackendGate>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
@@ -38,6 +39,6 @@ export default function App() {
         />
       </Routes>
       <Toaster position="top-center" richColors />
-    </>
+    </BackendGate>
   );
 }
