@@ -14,7 +14,7 @@ import { CreateMessageSchema } from "../types/messageSchema";
 import { addClient, removeClient, emit } from "../sse/manager";
 import { resolveProjectPath } from "../e2b/filesystem";
 
-import { runAgent } from "../agents/loop";
+import { runAgent, stopAgent } from "../agents/loop";
 
 const PROJECT_ROOT = "/home/user/project";
 const HIDDEN_ENTRIES = new Set(["node_modules", ".git", "dist"]);
@@ -126,6 +126,35 @@ router.get("/:id/stream", async (req, res) => {
   req.on("close", () => {
     removeClient(conversation.id, res);
   });
+});
+
+router.post("/:id/stop", async (req, res) => {
+  const conversation = await prisma.conversation.findFirst({
+    where: { id: req.params.id, userId: req.userId },
+  });
+
+  if (!conversation) {
+    return res.status(404).json({ error: "conversation not found" });
+  }
+
+  const busy = await prisma.agentRun.findFirst({
+    where: {
+      conversationId: conversation.id,
+      status: { in: ["running", "waiting_for_user"] },
+    },
+  });
+
+  if (!busy) {
+    return res.status(404).json({ error: "no running agent" });
+  }
+
+  try {
+    await stopAgent(conversation.id);
+    return res.json({ ok: true });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: "failed to stop agent" });
+  }
 });
 
 router.post("/:id/messages", async (req, res) => {

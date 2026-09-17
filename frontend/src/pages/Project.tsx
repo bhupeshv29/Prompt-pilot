@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { ArrowLeft, Code2, Download, ExternalLink, Eye, Loader2, RefreshCw, Send } from "lucide-react";
+import { ArrowLeft, Code2, Download, ExternalLink, Eye, Loader2, RefreshCw, Send, Square } from "lucide-react";
 import { api, clearToken } from "@/api/client";
 import { CodeBrowser } from "@/components/CodeBrowser";
 import { ToolStatus } from "@/components/ToolStatus";
@@ -46,71 +46,66 @@ export default function Project() {
   const [previewKey, setPreviewKey] = useState(0);
   const [messages, setMessages] = useState<Message[]>([]);
   const [liveText, setLiveText] = useState("");
-  const [tools, setTools] = useState<ToolChip[]>([]);
+  const [currentTool, setCurrentTool] = useState<ToolChip | null>(null);
   const [question, setQuestion] = useState<Question | null>(null);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [agentBusy, setAgentBusy] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sandboxError, setSandboxError] = useState("");
   const [sendError, setSendError] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [rightView, setRightView] = useState<"preview" | "code">("preview");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const sendAbortRef = useRef<AbortController | null>(null);
+
+  function resetRunningState() {
+    setAgentBusy(false);
+    setSending(false);
+    setStopping(false);
+    setCurrentTool(null);
+    sendAbortRef.current = null;
+  }
 
   useAgentStream(id, {
     onTextDelta: (text) => setLiveText((prev) => prev + text),
     onToolStart: (data) =>
-      setTools((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          tool: data.tool,
-          label: toolLabel(data.tool, data.input),
-          status: "running",
-        },
-      ]),
-    onToolResult: (data) =>
-      setTools((prev) => {
-        const next = [...prev];
-        for (let i = next.length - 1; i >= 0; i--) {
-          if (next[i].tool === data.tool && next[i].status === "running") {
-            next[i] = {
-              ...next[i],
-              status: data.success ? "ok" : "fail",
-            };
-            break;
-          }
-        }
-        return next;
+      setCurrentTool({
+        id: crypto.randomUUID(),
+        tool: data.tool,
+        label: toolLabel(data.tool, data.input),
+        status: "running",
       }),
+    onToolResult: () => setCurrentTool(null),
     onQuestion: (data) => setQuestion(data),
     onPreviewUpdated: () => setPreviewKey((k) => k + 1),
     onMessageComplete: () => {
-      setAgentBusy(false);
-      setSending(false);
+      resetRunningState();
       setLiveText((text) => {
-        setTools((currentTools) => {
-          if (text || currentTools.length) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: crypto.randomUUID(),
-                role: "assistant",
-                content: text,
-                tools: currentTools,
-              },
-            ]);
-          }
-          return [];
-        });
+        if (text) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              content: text,
+            },
+          ]);
+        }
         return "";
       });
     },
+    onAgentStopped: () => {
+      resetRunningState();
+      setLiveText("");
+    },
+    onAgentComplete: () => {
+      resetRunningState();
+    },
     onError: (message) => {
       setSendError(message);
-      setAgentBusy(false);
-      setSending(false);
+      resetRunningState();
     },
   });
 
@@ -133,7 +128,7 @@ export default function Project() {
       setActive(conversation);
       setPreviewUrl(conversation.sandbox?.previewUrl ?? "");
       setLiveText("");
-      setTools([]);
+      setCurrentTool(null);
       setQuestion(null);
       const history = await api.get(`/conversations/${id}/messages`);
       setMessages(history.data.messages);
@@ -166,21 +161,24 @@ export default function Project() {
 
   async function send(contentOverride?: string) {
     const raw = contentOverride ?? input;
-    if (!id || !raw.trim() || sending) return;
+    if (!id || !raw.trim() || sending || agentBusy) return;
     const content = raw.trim();
     setInput("");
     setSending(true);
     setAgentBusy(true);
     setSendError("");
-    setTools([]);
+    setCurrentTool(null);
     setLiveText("");
     setMessages((prev) => [
       ...prev,
       { id: crypto.randomUUID(), role: "user", content },
     ]);
 
+    const controller = new AbortController();
+    sendAbortRef.current = controller;
+
     try {
-      await api.post(`/conversations/${id}/messages`, { content });
+      await api.post(`/conversations/${id}/messages`, { content }, { signal: controller.signal });
       const list = await api.get("/conversations");
       const updated = list.data.conversations.find(
         (c: Conversation) => c.id === id,
@@ -188,6 +186,9 @@ export default function Project() {
       if (updated)
         setActive((prev) => (prev ? { ...prev, title: updated.title } : prev));
     } catch (error) {
+      if (axios.isAxiosError(error) && (error.code === "ERR_CANCELED" || error.name === "CanceledError")) {
+        return;
+      }
       if (isSandboxDown(error)) {
         setSandboxError("sandbox unavailable, retry");
         setSendError(
@@ -202,7 +203,30 @@ export default function Project() {
         setAgentBusy(false);
       }
     } finally {
-      setSending(false);
+      if (sendAbortRef.current === controller) {
+        setSending(false);
+        sendAbortRef.current = null;
+      }
+    }
+  }
+
+  async function stop() {
+    if (!id || stopping) return;
+    setStopping(true);
+    sendAbortRef.current?.abort();
+    try {
+      await api.post(`/conversations/${id}/stop`);
+    } catch {
+      // backend may already have finished; SSE will sync state
+    } finally {
+      // state clears on agent_stopped / message_complete; fallback:
+      setTimeout(() => {
+        setAgentBusy(false);
+        setSending(false);
+        setStopping(false);
+        setCurrentTool(null);
+        sendAbortRef.current = null;
+      }, 4000);
     }
   }
 
@@ -259,10 +283,10 @@ export default function Project() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, liveText, tools, question]);
+  }, [messages, liveText, currentTool, question]);
 
   const thinking =
-    sending || agentBusy || liveText.length > 0 || tools.length > 0;
+    sending || agentBusy || liveText.length > 0 || currentTool !== null;
 
   return (
     <div className="flex h-svh flex-col">
@@ -359,18 +383,19 @@ export default function Project() {
 
             {thinking && (
               <div className="mr-4 rounded-3xl rounded-bl-md border border-border bg-card px-4 py-3 text-sm">
-                <p className="font-accent text-[11px] text-primary">thinking</p>
+                <p className="flex items-center gap-2 font-accent text-[11px] text-primary">
+                  <Loader2 className="size-3.5 animate-spin" />
+                  {stopping ? "Stopping…" : (currentTool ? currentTool.label : "Running…")}
+                </p>
                 {liveText ? (
-                  <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+                  <p className="mt-1 line-clamp-3 whitespace-pre-wrap leading-relaxed text-muted-foreground">
                     {liveText}
                   </p>
                 ) : (
-                  <p className="mt-1 flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="size-3.5 animate-spin" />
-                    Sketching the next change…
+                  <p className="mt-1 text-muted-foreground">
+                    {currentTool ? "Working on it…" : "Sketching the next change…"}
                   </p>
                 )}
-                <ToolStatus tools={tools} />
               </div>
             )}
 
@@ -409,7 +434,7 @@ export default function Project() {
           >
             <Textarea
               value={input}
-              disabled={sending || Boolean(question)}
+              disabled={agentBusy || Boolean(question)}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -419,14 +444,30 @@ export default function Project() {
               }}
               placeholder="Ask to edit the site…"
             />
-            <div className="mt-2 flex justify-end">
-              <Button
-                type="submit"
-                disabled={!input.trim() || sending || Boolean(question)}
-              >
-                <Send />
-                Send
-              </Button>
+            <div className="mt-2 flex justify-end gap-2">
+              {thinking ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={stop}
+                  disabled={stopping}
+                >
+                  {stopping ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Square />
+                  )}
+                  {stopping ? "Stopping…" : "Stop"}
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={!input.trim() || Boolean(question)}
+                >
+                  <Send />
+                  Send
+                </Button>
+              )}
             </div>
           </form>
         </section>

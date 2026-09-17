@@ -17,6 +17,62 @@ type PausedRun = {
 
 const pausedRuns = new Map<string, PausedRun>();
 
+const stopRequests = new Set<string>();
+
+export function requestStop(conversationId: string) {
+  stopRequests.add(conversationId);
+}
+
+function consumeStop(conversationId: string) {
+  if (!stopRequests.has(conversationId)) return false;
+  stopRequests.delete(conversationId);
+  return true;
+}
+
+export async function stopAgent(conversationId: string) {
+  requestStop(conversationId);
+
+  // If the run is paused waiting for user input, no loop is active to
+  // observe the flag — cancel it immediately.
+  for (const [questionId, paused] of pausedRuns) {
+    if (paused.conversationId !== conversationId) continue;
+    pausedRuns.delete(questionId);
+    try {
+      await prisma.question.updateMany({
+        where: { agentRunId: paused.runId, status: "pending" },
+        data: { status: "cancelled", answeredAt: new Date() },
+      });
+      await prisma.toolCall.updateMany({
+        where: { agentRunId: paused.runId, status: "waiting" },
+        data: {
+          output: { ok: false, error: "stopped by user" },
+          status: "failed",
+          completedAt: new Date(),
+        },
+      });
+      await prisma.agentRun.update({
+        where: { id: paused.runId },
+        data: {
+          status: "cancelled",
+          completedAt: new Date(),
+          error: "stopped by user",
+        },
+      });
+      await prisma.message.create({
+        data: {
+          conversationId,
+          role: "assistant",
+          content: "Stopped.",
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
+    emit(conversationId, "agent_stopped", {});
+    emit(conversationId, "agent_complete", {});
+  }
+}
+
 export async function runAgent(opts: {
   conversationId: string;
   userMessageId: string;
@@ -162,6 +218,39 @@ async function saveRunSnapshot(opts: {
   }
 }
 
+async function finishStopped(
+  opts: { conversationId: string; runId: string; sandbox: Sandbox },
+  filesChanged: boolean,
+) {
+  if (filesChanged) {
+    await saveRunSnapshot({
+      conversationId: opts.conversationId,
+      sandbox: opts.sandbox,
+    });
+  }
+  await prisma.agentRun.update({
+    where: { id: opts.runId },
+    data: {
+      status: "cancelled",
+      completedAt: new Date(),
+      error: "stopped by user",
+    },
+  });
+  const assistantMessage = await prisma.message.create({
+    data: {
+      conversationId: opts.conversationId,
+      role: "assistant",
+      content: "Stopped.",
+    },
+  });
+  emit(opts.conversationId, "message_complete", {
+    messageId: assistantMessage.id,
+  });
+  emit(opts.conversationId, "agent_stopped", {});
+  emit(opts.conversationId, "agent_complete", {});
+  return { status: "stopped" as const, assistantMessage };
+}
+
 async function continueLoop(opts: {
   conversationId: string;
   runId: string;
@@ -173,11 +262,19 @@ async function continueLoop(opts: {
 
   try {
     for (let step = 0; step < 30; step++) {
+      if (consumeStop(opts.conversationId)) {
+        return await finishStopped(opts, filesChanged);
+      }
+
       input = compactInput(input);
 
       const turn = await streamTurn(input, (text) => {
       emit(opts.conversationId, "text_delta", { text });
       });
+
+      if (consumeStop(opts.conversationId)) {
+        return await finishStopped(opts, filesChanged);
+      }
 
       if (turn.functionCalls.length === 0) {
         const assistantMessage = await prisma.message.create({
@@ -211,6 +308,10 @@ async function continueLoop(opts: {
       input = compactInput([...input, ...(turn.output as unknown[])]);
 
       for (const call of turn.functionCalls) {
+        if (consumeStop(opts.conversationId)) {
+          return await finishStopped(opts, filesChanged);
+        }
+
         let args: unknown = {};
         try {
           args = JSON.parse(call.arguments || "{}");
